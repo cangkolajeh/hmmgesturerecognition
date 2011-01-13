@@ -99,15 +99,19 @@ ylabel(axes_mag, 'a [mg]');
 % sensor setup
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% set up sensor
-system(sprintf('stty -F %s %d raw', sensor_src, baud_rate));
-system(sprintf('stty -F %s', sensor_src));
+% set up sensor (this was used for bluetooth sensor)
+%system(sprintf('stty -F %s %d raw', sensor_src, baud_rate));
+%system(sprintf('stty -F %s', sensor_src));
 
-% pause to allow Bluetooth setup!
-pause(2);
+% pause to allow Bluetooth setup! (not needed for USB sensor)
+%pause(2);
 
-% open sensor
-sensor = fopen(sensor_src, 'r');
+
+% open sensor (this works for Windows and Linux!)
+sensor = serial(sensor_src);
+set(sensor,'BaudRate',baud_rate);
+
+fopen(sensor);
 
 % sensor is now active
 ACTIVE_SENSOR = 1;
@@ -160,20 +164,24 @@ while (~TERMINATE)
     i = i + 1;
 
     
-    % synchronize data stream, i.e. find prefix 'DX1'
-    while (~(buffer(1) == 'D' && buffer(2) == 'X' && buffer(3) == '1'))
+    % synchronize data stream, i.e. find prefix 'DX1' or 'DX3'
+    while (~(buffer(1) == 'D' && buffer(2) == 'X' && (buffer(3) == '1' || buffer(3) == '3')))
         buffer = shiftLeft(buffer, 1);
         buffer(buffer_len) = fread(sensor, 1, 'int8');
     end
 
-
     % get data from stream
     id = fread(sensor, 1, 'int8');
-    button = fread(sensor, 1, 'int16');
-%     x_u = fread(sensor, 1, 'int16');
-%     y_u = fread(sensor, 1, 'int16');
-%     z_u = fread(sensor, 1, 'int16');
-x_u = 0; y_u = 0; z_u = 0;
+    if (buffer(3) == '3') % This format ('DX3') is usually used for USB sensor
+        button = fread(sensor, 1, 'int8');
+        x_u = fread(sensor, 1, 'int16');
+        y_u = fread(sensor, 1, 'int16');
+        z_u = fread(sensor, 1, 'int16');
+    elseif (buffer(3) == '1') % This format ('DX1') is usually used for Bluetooth sensor
+        button = fread(sensor, 1, 'int16');
+        x_u = 0; y_u = 0; z_u = 0;
+    end
+
     x = fread(sensor, 1, 'int16');
     x = cast(x, 'double');
     y = fread(sensor, 1, 'int16');

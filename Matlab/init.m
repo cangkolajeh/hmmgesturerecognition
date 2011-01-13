@@ -109,7 +109,7 @@ gestures_initialized = 0;
 
 % SENSOR
 
-sensor_src = '/dev/rfcomm26';
+sensor_src = '/dev/ttyUSB0';
 baud_rate = 19200;
 
 %sensor_src = '/dev/rfcomm8';
